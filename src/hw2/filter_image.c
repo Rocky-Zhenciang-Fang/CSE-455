@@ -171,47 +171,157 @@ image make_gaussian_filter(float sigma)
             set_pixel(result, x, y, 0, value);
         }
     }
-    l1_normalize(result);   // normalize result to prevent rountoff error 
+    l1_normalize(result);   // since it is a blurring filter, we need to normalize it 
     return result;
 }
 
 image add_image(image a, image b)
 {
-    // TODO
-    return make_image(1,1,1);
+    /* 
+    return a image with each pixel is the sum of the corresponding pixel from a and b
+    */
+    assert(a.w == b.w && a.h == b.h && a.c == b.c); 
+    image result = make_image(a.w, a.h, a.c); 
+    for (int x = 0; x < result.w; x++) {
+        for (int y = 0; y < result.h; y++) {
+            for (int c = 0; c < result.c; c++) {
+                set_pixel(result, x, y, c, get_pixel(a, x, y, c) + get_pixel(b, x, y, c)); 
+            }
+        }
+    }
+    return result;
 }
 
 image sub_image(image a, image b)
 {
-    // TODO
-    return make_image(1,1,1);
+    /* 
+    return a image with each pixel is the difference of the corresponding pixel from a and b
+    */
+    assert(a.w == b.w && a.h == b.h && a.c == b.c); 
+    image result = make_image(a.w, a.h, a.c); 
+    for (int x = 0; x < result.w; x++) {
+        for (int y = 0; y < result.h; y++) {
+            for (int c = 0; c < result.c; c++) {
+                set_pixel(result, x, y, c, get_pixel(a, x, y, c) - get_pixel(b, x, y, c)); 
+            }
+        }
+    }
+    return result;
 }
 
 image make_gx_filter()
 {
-    // TODO
-    return make_image(1,1,1);
+    /* 
+    returns a image which is [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
+    */
+    image filter = make_image(3, 3, 1); 
+    set_pixel(filter, 0, 0, 0, -1);
+    set_pixel(filter, 1, 0, 0, 0);
+    set_pixel(filter, 2, 0, 0, 1);
+    set_pixel(filter, 0, 1, 0, -2);
+    set_pixel(filter, 1, 1, 0, 0);
+    set_pixel(filter, 2, 1, 0, 2);
+    set_pixel(filter, 0, 2, 0, -1);
+    set_pixel(filter, 1, 2, 0, 0);
+    set_pixel(filter, 2, 2, 0, 1);
+    return filter;
 }
+
 
 image make_gy_filter()
 {
-    // TODO
-    return make_image(1,1,1);
+    /* 
+    returns a image which is [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
+    */
+    image filter = make_image(3, 3, 1); 
+    set_pixel(filter, 0, 0, 0, -1);
+    set_pixel(filter, 1, 0, 0, -2);
+    set_pixel(filter, 2, 0, 0, -1);
+    set_pixel(filter, 0, 1, 0, 0);
+    set_pixel(filter, 1, 1, 0, 0);
+    set_pixel(filter, 2, 1, 0, 0);
+    set_pixel(filter, 0, 2, 0, 1);
+    set_pixel(filter, 1, 2, 0, 2);
+    set_pixel(filter, 2, 2, 0, 1);
+    return filter;
 }
 
 void feature_normalize(image im)
 {
-    // TODO
+    /*
+    for each channel in im, we normalize it by subtracting each pixel by the minimal value and divide by the range. If the range is 0, set all pixels fo zero
+    */
+    for (int channel = 0; channel < im.c; channel++) {
+        float c_min = INFINITY; 
+        float c_max = -INFINITY; 
+        for (int x = 0; x < im.w; x++) {
+            for (int y = 0; y < im.h; y++) {
+                float val = get_pixel(im, x, y, channel);
+                c_max = fmax(c_max, val); 
+                c_min = fmin(c_min, val);
+            }
+        }
+        for (int x = 0; x < im.w; x++) {
+            for (int y = 0; y < im.h; y++) {
+                if (c_min == c_max) {
+                    set_pixel(im, x, y, channel, 0);
+                }
+                else {
+                    set_pixel(im, x, y, channel, get_pixel(im, x, y, channel) / (c_max - c_min));
+                }
+            }
+        }
+    }
 }
 
 image *sobel_image(image im)
 {
-    // TODO
-    return calloc(2, sizeof(image));
+    /*
+    Return two images, both with the size of (im.w, im.h, 1). The first one have the magnitude and the second one have the angle
+    */
+    image* result = calloc(2, sizeof(image));
+    image x_filter = make_gx_filter(); 
+    image y_filter = make_gy_filter();
+    image gx = convolve_image(im, x_filter, 0); 
+    image gy = convolve_image(im, y_filter, 0);
+    image magnitude = make_image(im.w, im.h, 1); 
+    image angle = make_image(im.w, im.h, 1); 
+    for (int i = 0; i < gx.w * gx.h; i++) {
+        float mag = sqrtf(powf(gx.data[i], 2) + powf(gy.data[i], 2));
+        float ang = atan2(gy.data[i], gx.data[i]);
+        magnitude.data[i] = mag; 
+        angle.data[i] = ang; 
+    }
+    result[0] = magnitude; 
+    result[1] = angle; 
+    free_image(x_filter);
+    free_image(y_filter);
+    free_image(gx);
+    free_image(gy);
+    return result;
 }
 
 image colorize_sobel(image im)
 {
-    // TODO
-    return make_image(1,1,1);
+    /*
+    returns one image with RGB colored edge and other pixels black
+    first use sobel_image() to seperate the angle and the magnitude of the edges
+    then turn the magnitude into saturation and value and angle to hue
+    finally transform this image to RGB and return 
+    */
+    image* images = sobel_image(im); 
+    feature_normalize(images[0]);
+    feature_normalize(images[1]);   // post-processing after applying a filter
+    image result = make_image(im.w, im.h, 3);   // the result image will be stored in RGB
+    for (int x = 0; x < result.w; x++) {
+        for (int y = 0; y < result.h; y++) {
+            set_pixel(result, x, y, 0, get_pixel(images[1], x, y, 0)); // set the hue to angle  
+            set_pixel(result, x, y, 1, get_pixel(images[0], x, y, 0)); // set saturation to magnitude
+            set_pixel(result, x, y, 2, get_pixel(images[0], x, y, 0)); // set value to magnitude
+        }
+    }
+    hsv_to_rgb(result); 
+    free_image(images[0]);
+    free_image(images[1]);
+    return result;
 }
