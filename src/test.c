@@ -716,11 +716,11 @@ void test_hw1()
 }
 void test_hw2()
 {
+    test_convolution();
     test_gaussian_filter();
     test_sharpen_filter();
     test_emboss_filter();
     test_highpass_filter();
-    test_convolution();
     test_gaussian_blur();
     test_hybrid_image();
     test_frequency_image();

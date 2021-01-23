@@ -1,7 +1,7 @@
 from uwimg import *
 
 # 1. Getting and setting pixels
-im = load_image("data/dog.jpg")
+im = load_image("/Users/fangchenxiang/Documents/Rocky/Courses/CSE_455/uwimg/data/dog.jpg")
 for row in range(im.h):
     for col in range(im.w):
         set_pixel(im, col, row, 0, 0)
