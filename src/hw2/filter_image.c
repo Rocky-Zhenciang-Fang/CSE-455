@@ -157,8 +157,22 @@ image make_emboss_filter()
 
 image make_gaussian_filter(float sigma)
 {
-    // TODO
-    return make_image(1,1,1);
+    /*
+    returns a image with size (ceil(sigma * 6), ceil(sigma * 6), 1), each pixel follows the formula of 2D Gaussian functions 
+    */
+    int size = ceil(sigma * 6);
+    if (size % 2 == 0) size += 1; 
+    image result = make_image(size, size, 1); 
+    for (int x = 0; x < result.w; x++) {
+        for (int y = 0; y < result.h; y++) {
+            float gx = x - (size - 1) / 2 ; // offset so that the mid point is 0
+            float gy = y - (size - 1) / 2; // offset so that the mid point is 0
+            float value = expf(-(gx * gx + gy * gy)/(2 * sigma * sigma)) / (TWOPI * sigma * sigma);
+            set_pixel(result, x, y, 0, value);
+        }
+    }
+    l1_normalize(result);   // normalize result to prevent rountoff error 
+    return result;
 }
 
 image add_image(image a, image b)
