@@ -83,8 +83,16 @@ void mark_corners(image im, descriptor *d, int n)
 // returns: single row image of the filter.
 image make_1d_gaussian(float sigma)
 {
-    // TODO: optional, make separable 1d Gaussian.
-    return make_image(1,1,1);
+    int size = ceil(sigma * 6);
+    if (size % 2 == 0) size += 1; 
+    image result = make_image(size, 1, 1); 
+    for (int x = 0; x < result.w; x++) {
+        float gx = x - (size - 1) / 2 ; // offset so that the mid point is 0
+        float value = expf(-(gx * gx)/(2 * sigma * sigma)) / sqrtf(TWOPI * sigma);
+        set_pixel(result, x, 0, 0, value);
+    }
+    l1_normalize(result);   // since it is a blurring filter, we need to normalize it 
+    return result;
 }
 
 // Smooths an image using separable Gaussian filter.
@@ -93,19 +101,26 @@ image make_1d_gaussian(float sigma)
 // returns: smoothed image.
 image smooth_image(image im, float sigma)
 {
-    if(1){
+    if(1 == 0){
         image g = make_gaussian_filter(sigma);
         image s = convolve_image(im, g, 1);
         free_image(g);
         return s;
     } else {
-        // TODO: optional, use two convolutions with 1d gaussian filter.
-        // If you implement, disable the above if check.
-        return copy_image(im);
+        image hor_filter = make_1d_gaussian(sigma); 
+        image ver_filter = make_image(hor_filter.h, hor_filter.w, hor_filter.c);
+        for (int x = 0; x < hor_filter.w; x++) {
+            set_pixel(ver_filter, 0, x, 0, get_pixel(hor_filter, x, 0, 0)); 
+        }
+        image result = convolve_image(im, hor_filter, 1); 
+        result = convolve_image(result, ver_filter, 1); 
+        return result;
     }
 }
 
 // Calculate the structure matrix of an image.
+// First caculate the direvitive of the pixels, remember of burr it first
+// Then store the values in the respective channels
 // image im: the input image.
 // float sigma: std dev. to use for weighted sum.
 // returns: structure matrix. 1st channel is Ix^2, 2nd channel is Iy^2,
@@ -113,8 +128,27 @@ image smooth_image(image im, float sigma)
 image structure_matrix(image im, float sigma)
 {
     image S = make_image(im.w, im.h, 3);
-    // TODO: calculate structure matrix for im.
-    return S;
+    image gx = make_gx_filter(); 
+    image gy = make_gy_filter(); 
+    image Ix = convolve_image(im, gx, 0);
+    image Iy = convolve_image(im, gy, 0); 
+    for (int x = 0; x < S.w; x++) {
+        for (int y = 0; y < S.h; y++) {
+            float x_val = get_pixel(Ix, x, y, 0);
+            float y_val = get_pixel(Iy, x, y, 0);
+            set_pixel(S, x, y, 0, x_val * x_val);
+            set_pixel(S, x, y, 1, y_val * y_val);
+            set_pixel(S, x, y, 2, y_val * x_val);
+        }
+    }
+    image result = smooth_image(S, sigma); 
+
+    free_image(S);
+    free_image(Ix); 
+    free_image(Iy);
+    free_image(gx);
+    free_image(gy);
+    return result;
 }
 
 // Estimate the cornerness of each pixel given a structure matrix S.
@@ -125,6 +159,16 @@ image cornerness_response(image S)
     image R = make_image(S.w, S.h, 1);
     // TODO: fill in R, "cornerness" for each pixel using the structure matrix.
     // We'll use formulation det(S) - alpha * trace(S)^2, alpha = .06.
+    for (int x = 0; x < S.w; x++) {
+        for (int y = 0; y < S.h; y++) {
+            float topleft = get_pixel(S, x, y, 0);
+            float buttomright = get_pixel(S, x, y, 1); 
+            float buttomleft = get_pixel(S, x, y, 2);
+            float topright  = buttomleft; 
+            float value = topleft * buttomright - topright * buttomleft - 0.06 * powf((topleft + buttomright), 2);
+            set_pixel(R, x, y, 0, value); 
+        }
+    }
     return R;
 }
 
@@ -135,11 +179,25 @@ image cornerness_response(image S)
 image nms_image(image im, int w)
 {
     image r = copy_image(im);
-    // TODO: perform NMS on the response map.
     // for every pixel in the image:
     //     for neighbors within w:
     //         if neighbor response greater than pixel response:
     //             set response to be very low (I use -999999 [why not 0??])
+    for (int x = 0; x < im.w; x++) {
+        for (int y = 0; y < im.h; y++) {
+            // this inner loop loop over [2w + 1] window
+            float current = get_pixel(im, x, y, 0); 
+            for (int nnm_x = x - w; nnm_x < x +  w + 1; nnm_x++) {
+                for (int nnm_y = y - w; nnm_y < y + w + 1; nnm_y++) {
+                    float compare = get_pixel(im, nnm_x, nnm_y, 0);
+                    if (compare > current) { 
+                        set_pixel(r, x, y, 0, -999999); 
+                        break;
+                    }
+                }
+            }
+        }
+    }
     return r;
 }
 
@@ -151,7 +209,7 @@ image nms_image(image im, int w)
 // int *n: pointer to number of corners detected, should fill in.
 // returns: array of descriptors of the corners in the image.
 descriptor *harris_corner_detector(image im, float sigma, float thresh, int nms, int *n)
-{
+{   
     // Calculate structure matrix
     image S = structure_matrix(im, sigma);
 
@@ -161,15 +219,23 @@ descriptor *harris_corner_detector(image im, float sigma, float thresh, int nms,
     // Run NMS on the responses
     image Rnms = nms_image(R, nms);
 
-
-    //TODO: count number of responses over threshold
-    int count = 1; // change this
-
+    int count = 0; // change this
+    for (int i = 0; i < Rnms.w * Rnms.h * Rnms.c; i++) {
+        if (Rnms.data[i] > thresh) {
+            count += 1; 
+        }
+    } 
     
+
     *n = count; // <- set *n equal to number of corners in image.
     descriptor *d = calloc(count, sizeof(descriptor));
-    //TODO: fill in array *d with descriptors of corners, use describe_index.
-
+    descriptor *ptr = d; 
+    for (int i = 0; i < Rnms.w * Rnms.h * Rnms.c; i++) {
+        if (Rnms.data[i] > thresh) {
+            d[count - 1] = describe_index(im, i); 
+            count -= 1; 
+        }
+    } 
 
     free_image(S);
     free_image(R);

@@ -1,8 +1,8 @@
 from uwimg import *
 
 def draw_corners():
-    im = load_image("data/Rainier1.png")
-    detect_and_draw_corners(im, 2, 50, 3)
+    im = load_image("uwimg/data/Rainier1.png")
+    detect_and_draw_corners(im, 3, 50, 5)
     save_image(im, "corners")
 
 def draw_matches():
