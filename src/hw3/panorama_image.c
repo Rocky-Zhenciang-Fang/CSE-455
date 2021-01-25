@@ -118,7 +118,11 @@ image find_and_draw_matches(image a, image b, float sigma, float thresh, int nms
 float l1_distance(float *a, float *b, int n)
 {
     // TODO: return the correct number.
-    return 0;
+    float res = 0; 
+    for (int i = 0; i < n; i++) {
+        res += fabsf(a[i] - b[i]);
+    }
+    return res;
 }
 
 // Finds best matches between descriptors of two images.
@@ -135,26 +139,58 @@ match *match_descriptors(descriptor *a, int an, descriptor *b, int bn, int *mn)
     *mn = an;
     match *m = calloc(an, sizeof(match));
     for(j = 0; j < an; ++j){
-        // TODO: for every descriptor in a, find best match in b.
+        // for every descriptor in a, find best match in b.
         // record ai as the index in *a and bi as the index in *b.
-        int bind = 0; // <- find the best match
+        int bind = -1; // <- find the best match
+        float smallest_distance = INFINITY;
+        for (i = 0; i < bn; i ++) {
+            float dis = l1_distance(a[j].data, b[i].data, a[j].n);
+            if (dis < smallest_distance) {
+                bind = i; 
+                smallest_distance = dis;
+            }
+        }
         m[j].ai = j;
         m[j].bi = bind; // <- should be index in b.
         m[j].p = a[j].p;
         m[j].q = b[bind].p;
-        m[j].distance = 0; // <- should be the smallest L1 distance!
+        m[j].distance = smallest_distance; // <- should be the smallest L1 distance!
     }
 
     int count = 0;
     int *seen = calloc(bn, sizeof(int));
-    // TODO: we want matches to be injective (one-to-one).
+    for (int i = 0; i < bn; ++i) {seen[i] = 0; }
+    // We want matches to be injective (one-to-one).
     // Sort matches based on distance using match_compare and qsort.
     // Then throw out matches to the same element in b. Use seen to keep track.
     // Each point should only be a part of one match.
     // Some points will not be in a match.
     // In practice just bring good matches to front of list, set *mn.
+    int* good_match = calloc(an, sizeof(int)); // records which matches should be included
+    qsort(m, an, sizeof(match), match_compare); 
+
+    for (int i = 0; i < an; i ++) {good_match[i] = 0;}
+    for (int i = 0; i < an; i ++) {
+        if (seen[m[i].bi] == 0) { // if not seen before
+            good_match[i] = 1;  // add this to the good match
+            count += 1; 
+        }
+        seen[m[i].bi] = 1;   // record this b as seen
+    }
+    //for (int i = 0; i < an; i ++) {printf("%f ", m[i].distance); }
+    for (int i = 0; i < an; i ++) {printf("%d ",good_match[i]); }
+    // move all good matches in m to the front
+    int next_good_index = 0;    // points to the next place in m for storing a good match
+    for (int i = 0; i < an; ++i) {
+        if (good_match[i] == 1) {
+            m[next_good_index] = m[i]; 
+            next_good_index += 1; 
+        }
+    }
+    
     *mn = count;
     free(seen);
+    free(good_match);
     return m;
 }
 
