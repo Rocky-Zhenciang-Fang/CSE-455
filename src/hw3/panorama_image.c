@@ -177,8 +177,7 @@ match *match_descriptors(descriptor *a, int an, descriptor *b, int bn, int *mn)
         }
         seen[m[i].bi] = 1;   // record this b as seen
     }
-    //for (int i = 0; i < an; i ++) {printf("%f ", m[i].distance); }
-    for (int i = 0; i < an; i ++) {printf("%d ",good_match[i]); }
+
     // move all good matches in m to the front
     int next_good_index = 0;    // points to the next place in m for storing a good match
     for (int i = 0; i < an; ++i) {
@@ -201,10 +200,16 @@ match *match_descriptors(descriptor *a, int an, descriptor *b, int bn, int *mn)
 point project_point(matrix H, point p)
 {
     matrix c = make_matrix(3, 1);
-    // TODO: project point p with homography H.
+    // Project point p with homography H.
     // Remember that homogeneous coordinates are equivalent up to scalar.
     // Have to divide by.... something...
+    c.data[0][0] = p.x; 
+    c.data[1][0] = p.y;
+    c.data[2][0] = 1; 
+    matrix res = matrix_mult_matrix(H, c);
     point q = make_point(0, 0);
+    q.x = res.data[0][0] / res.data[2][0];
+    q.y = res.data[1][0] / res.data[2][0]; 
     return q;
 }
 
@@ -213,8 +218,7 @@ point project_point(matrix H, point p)
 // returns: L2 distance between them.
 float point_distance(point p, point q)
 {
-    // TODO: should be a quick one.
-    return 0;
+    return sqrtf(powf(p.x - q.x, 2) + powf(p.y - q.y, 2)); 
 }
 
 // Count number of inliers in a set of matches. Should also bring inliers
@@ -228,11 +232,26 @@ float point_distance(point p, point q)
 //          so that the inliers are first in the array. For drawing.
 int model_inliers(matrix H, match *m, int n, float thresh)
 {
-    int i;
+    int i = 0; 
     int count = 0;
+    int end = n - 1;
     // TODO: count number of matches that are inliers
     // i.e. distance(H*p, q) < thresh
     // Also, sort the matches m so the inliers are the first 'count' elements.
+    // Idea: for the first matches in m, caculate the l2 distance between the two points in the matches with one projected using H
+    // When we found a not good match, 
+    while (i <= end) { // for each match in m
+        if (point_distance(m[i].p, project_point(H, m[i].q)) < thresh) {  // found a inliers
+            count += 1;
+            i += 1; 
+        } 
+        else {  // not a inliner, swap this element with the at the end_index
+            match temp = m[i]; 
+            m[i] = m[end]; 
+            m[end] = temp;
+            end -= 1;
+        }
+    }
     return count;
 }
 
