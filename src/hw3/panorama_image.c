@@ -289,8 +289,8 @@ matrix compute_homography(match *matches, int n)
         double yp = matches[i].q.y;
         double m_row0[8] = {x, y, 1, 0, 0, 0, -x * xp, -y * xp};
         double m_row1[8] = {0, 0, 0, x, y, 1, -x * yp, -y * yp};
-        M.data[2 * i] = &m_row0;
-        M.data[2 * i + 1] = &m_row1; 
+        memcpy(M.data[i * 2], m_row0, sizeof(m_row0));
+        memcpy(M.data[i * 2 + 1], m_row1, sizeof(m_row1));
         b.data[2 * i][0] = xp;
         b.data[2 * i + 1][0] = yp;
     }
@@ -302,13 +302,9 @@ matrix compute_homography(match *matches, int n)
     if(!a.data) return none;
 
     matrix H = make_matrix(3, 3);
-    // TODO: fill in the homography H based on the result in a.
-    double H_0[3] = {a.data[0][0], a.data[1][0], a.data[2][0]}; 
-    double H_1[3] = {a.data[3][0], a.data[4][0], a.data[5][0]}; 
-    double H_2[3] = {a.data[6][0], a.data[7][0], 1}; 
-    H.data[0] = &H_0; 
-    H.data[1] = &H_1;
-    H.data[2] = &H_2;
+    for(i=0; i<8; i++)
+        H.data[i / 3][i % 3] = a.data[i][0];
+    H.data[2][2] = 1; 
     free_matrix(a);
     return H;
 }
