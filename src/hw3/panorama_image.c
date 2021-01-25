@@ -260,7 +260,16 @@ int model_inliers(matrix H, match *m, int n, float thresh)
 // int n: number of elements in matches.
 void randomize_matches(match *m, int n)
 {
-    // TODO: implement Fisher-Yates to shuffle the array.
+    if (n > 1) 
+    {
+        for (int i = 0; i < n - 1; i++) 
+        {
+          int j = i + rand() / (RAND_MAX / (n - i) + 1);
+          match t = m[j];
+          m[j] = m[i];
+          m[i] = t;
+        }
+    }
 }
 
 // Computes homography between two images given matching pixels.
@@ -278,8 +287,12 @@ matrix compute_homography(match *matches, int n)
         double xp = matches[i].q.x;
         double y  = matches[i].p.y;
         double yp = matches[i].q.y;
-        // TODO: fill in the matrices M and b.
-
+        double m_row0[8] = {x, y, 1, 0, 0, 0, -x * xp, -y * xp};
+        double m_row1[8] = {0, 0, 0, x, y, 1, -x * yp, -y * yp};
+        M.data[2 * i] = &m_row0;
+        M.data[2 * i + 1] = &m_row1; 
+        b.data[2 * i][0] = xp;
+        b.data[2 * i + 1][0] = yp;
     }
     matrix a = solve_system(M, b);
     free_matrix(M); free_matrix(b); 
@@ -290,8 +303,12 @@ matrix compute_homography(match *matches, int n)
 
     matrix H = make_matrix(3, 3);
     // TODO: fill in the homography H based on the result in a.
-
-
+    double H_0[3] = {a.data[0][0], a.data[1][0], a.data[2][0]}; 
+    double H_1[3] = {a.data[3][0], a.data[4][0], a.data[5][0]}; 
+    double H_2[3] = {a.data[6][0], a.data[7][0], 1}; 
+    H.data[0] = &H_0; 
+    H.data[1] = &H_1;
+    H.data[2] = &H_2;
     free_matrix(a);
     return H;
 }
