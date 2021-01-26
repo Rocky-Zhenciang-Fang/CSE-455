@@ -262,9 +262,9 @@ void randomize_matches(match *m, int n)
 {
     if (n > 1) 
     {
-        for (int i = 0; i < n - 1; i++) 
+        for (int i = n - 1; i < 0; i--) 
         {
-          int j = i + rand() / (RAND_MAX / (n - i) + 1);
+          int j = rand() % (i + 1);
           match t = m[j];
           m[j] = m[i];
           m[i] = t;
@@ -318,10 +318,8 @@ matrix compute_homography(match *matches, int n)
 // returns: matrix representing most common homography between matches.
 matrix RANSAC(match *m, int n, float thresh, int k, int cutoff)
 {
-    int e;
     int best = 0;
     matrix Hb = make_translation_homography(256, 0);
-    // TODO: fill in RANSAC algorithm.
     // for k iterations:
     //     shuffle the matches
     //     compute a homography with a few matches (how many??)
@@ -331,6 +329,24 @@ matrix RANSAC(match *m, int n, float thresh, int k, int cutoff)
     //         if it's better than the cutoff:
     //             return it immediately
     // if we get to the end return the best homography
+    int i = 0; 
+    while (i < n) {
+        randomize_matches(m, n); 
+        matrix candidate = compute_homography(m, 4); 
+        int c_inliers = model_inliers(candidate, m, n, thresh);
+        if (c_inliers > best) { 
+            matrix next_best = compute_homography(m, c_inliers);
+            int next_inliners = model_inliers(next_best, m, n, thresh); 
+            best = next_inliners;
+            Hb = next_best;
+            if (c_inliers > cutoff) { 
+                return next_best;
+            } 
+        } else {
+            free_matrix(candidate); 
+        }
+        i += 1; 
+    }
     return Hb;
 }
 
@@ -375,7 +391,7 @@ image combine_images(image a, image b, matrix H)
     for(k = 0; k < a.c; ++k){
         for(j = 0; j < a.h; ++j){
             for(i = 0; i < a.w; ++i){
-                // TODO: fill in.
+
             }
         }
     }
@@ -385,6 +401,7 @@ image combine_images(image a, image b, matrix H)
     // and see if their projection from a coordinates to b coordinates falls
     // inside of the bounds of image b. If so, use bilinear interpolation to
     // estimate the value of b at that projection, then fill in image c.
+
 
     return c;
 }
