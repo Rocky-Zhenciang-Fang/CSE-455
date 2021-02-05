@@ -232,7 +232,6 @@ float point_distance(point p, point q)
 //          so that the inliers are first in the array. For drawing.
 int model_inliers(matrix H, match *m, int n, float thresh)
 {
-    int i = 0; 
     int count = 0;
     int end = n - 1;
     // TODO: count number of matches that are inliers
@@ -240,14 +239,13 @@ int model_inliers(matrix H, match *m, int n, float thresh)
     // Also, sort the matches m so the inliers are the first 'count' elements.
     // Idea: for the first matches in m, caculate the l2 distance between the two points in the matches with one projected using H
     // When we found a not good match, 
-    while (i <= end) { // for each match in m
-        if (point_distance(m[i].p, project_point(H, m[i].q)) < thresh) {  // found a inliers
+    while (count <= end) { // for each match in m
+        if (point_distance(m[count].q, project_point(H, m[count].p)) < thresh) {  // found a inliers
             count += 1;
-            i += 1; 
         } 
         else {  // not a inliner, swap this element with the at the end_index
-            match temp = m[i]; 
-            m[i] = m[end]; 
+            match temp = m[count]; 
+            m[count] = m[end]; 
             m[end] = temp;
             end -= 1;
         }
@@ -391,18 +389,26 @@ image combine_images(image a, image b, matrix H)
     for(k = 0; k < a.c; ++k){
         for(j = 0; j < a.h; ++j){
             for(i = 0; i < a.w; ++i){
-
+                set_pixel(c, i - dx, j - dy, k, get_pixel(a, i, j, k));
             }
         }
     }
 
-    // TODO: Paste in image b as well.
-    // You should loop over some points in the new image (which? all?)
+    // You should loop over some points in the new image: caculated in topleft and botright
     // and see if their projection from a coordinates to b coordinates falls
     // inside of the bounds of image b. If so, use bilinear interpolation to
     // estimate the value of b at that projection, then fill in image c.
-
-
+    for (k = 0; k<c.c; k++) {
+        for(j = topleft.y; j < botright.y; j++) {
+            for(i = topleft.x; i < botright.x; i++){
+                // (i, j, k) is on image a 
+                point p_b = project_point(H, make_point(i,j));  // p_b is the projected point from image a to image b
+                if (0 <= p_b.x && p_b.x<b.w && 0 <= p_b.y && p_b.y<b.h){
+                    set_pixel(c, i - dx, j - dy, k, bilinear_interpolate(b, p_b.x, p_b.y, k)); // offseted by dx, dy as well
+                }
+            }
+        }
+    }
     return c;
 }
 
@@ -430,8 +436,7 @@ image panorama_image(image a, image b, float sigma, float thresh, int nms, float
 
     // Run RANSAC to find the homography
     matrix H = RANSAC(m, mn, inlier_thresh, iters, cutoff);
-
-    if(1){
+    if(0){
         // Mark corners and matches between images
         mark_corners(a, ad, an);
         mark_corners(b, bd, bn);
@@ -454,7 +459,24 @@ image panorama_image(image a, image b, float sigma, float thresh, int nms, float
 // returns: image projected onto cylinder, then flattened.
 image cylindrical_project(image im, float f)
 {
-    //TODO: project image onto a cylinder
-    image c = copy_image(im);
+    int xc = im.w / 2;
+    int yc = im.h / 2;
+    int w = 2 * f * atan2f(xc, f) - 1;
+    image c = make_image(w, im.h, im.c);
+    for (int k = 0; k < c.c; k++) {
+        for (int i = 0; i < c.w; i++) {
+            for (int j = 0; j < c.h; j++) {
+                float theta = (i - xc) / f;
+                float h = (j - yc) / f;
+                float XX = sinf(theta); 
+                float YY = h; 
+                float ZZ = cosf(theta);
+                float x = f * (XX / ZZ) + xc; 
+                float y = f * (YY / ZZ) + yc;
+                float value = bilinear_interpolate(im, x, y, k);
+                set_pixel(c, i, j, k, value);
+            }
+        }
+    }
     return c;
 }
