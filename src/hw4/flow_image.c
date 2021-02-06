@@ -79,7 +79,7 @@ image box_filter_image(image im, int s)
                 if (topleft.x != -1) value -= get_pixel(integ, topleft.x, botright.y, k);
                 if (topleft.y != -1) value -= get_pixel(integ, topleft.y, botright.x, k); 
                 if (topleft.x != -1 && topleft.y != -1) value += get_pixel(integ, topleft.x, topleft.y, k);
-                value /= (topleft.x - botright.x + 1) * (topleft.y - botright.y + 1); 
+                value /= (topleft.x - botright.x + 1) * (topleft.y - botright.y + 1);
                 set_pixel(S, i, j, k,  value);
             }
         }
