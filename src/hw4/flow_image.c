@@ -67,10 +67,23 @@ image make_integral_image(image im)
 // returns: smoothed image
 image box_filter_image(image im, int s)
 {
-    int i,j,k;
     image integ = make_integral_image(im);
     image S = make_image(im.w, im.h, im.c);
-    // TODO: fill in S using the integral image.
+    int offset = s / 2; // the cell should be at the middle of the box. [offset..., cell,...offset]
+    for (int k = 0; k < integ.c; k++) {
+        for (int i = 0; i < integ.w; i++) {
+            for (int j = 0; j < integ.h; j++) {
+                point topleft = make_point(fmax(-1, i - offset - 1), fmax(-1, j - offset - 1));
+                point botright = make_point(fmin(im.w - 1, i + offset), fmin(im.h - 1, j + offset));
+                float value = get_pixel(integ, botright.x, botright.y, k);
+                if (topleft.x != -1) value -= get_pixel(integ, topleft.x, botright.y, k);
+                if (topleft.y != -1) value -= get_pixel(integ, topleft.y, botright.x, k); 
+                if (topleft.x != -1 && topleft.y != -1) value += get_pixel(integ, topleft.x, topleft.y, k);
+                value /= (topleft.x - botright.x + 1) * (topleft.y - botright.y + 1); 
+                set_pixel(S, i, j, k,  value);
+            }
+        }
+    }
     return S;
 }
 
