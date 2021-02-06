@@ -61,30 +61,40 @@ image make_integral_image(image im)
     return integ;
 }
 
+float box_filter_pixel(image integ, int x, int y, int channel, int padding) {
+  int x1 = (++x) - padding;
+  int x2 = x + padding;
+  int y1 = (++y) - padding;
+  int y2 = y + padding;
+  return get_pixel(integ, x2, y2, channel) -
+         get_pixel(integ, x1 - 1, y2, channel) -
+         get_pixel(integ, x2, y1 - 1, channel) +
+         get_pixel(integ, x1 - 1, y1 - 1, channel);
+}
+
 // Apply a box filter to an image using an integral image for speed
 // image im: image to smooth
 // int s: window size for box filter
 // returns: smoothed image
-image box_filter_image(image im, int s)
-{
-    image integ = make_integral_image(im);
-    image S = make_image(im.w, im.h, im.c);
-    int offset = s / 2; // the cell should be at the middle of the box. [offset..., cell,...offset]
-    for (int k = 0; k < integ.c; k++) {
-        for (int i = 0; i < integ.w; i++) {
-            for (int j = 0; j < integ.h; j++) {
-                point topleft = make_point(fmax(-1, i - offset - 1), fmax(-1, j - offset - 1));
-                point botright = make_point(fmin(im.w - 1, i + offset), fmin(im.h - 1, j + offset));
-                float value = get_pixel(integ, botright.x, botright.y, k);
-                if (topleft.x != -1) value -= get_pixel(integ, topleft.x, botright.y, k);
-                if (topleft.y != -1) value -= get_pixel(integ, topleft.y, botright.x, k); 
-                if (topleft.x != -1 && topleft.y != -1) value += get_pixel(integ, topleft.x, topleft.y, k);
-                value /= (topleft.x - botright.x + 1) * (topleft.y - botright.y + 1);
-                set_pixel(S, i, j, k,  value);
-            }
-        }
+image box_filter_image(image im, int s) {
+  int x, y, channel;
+  int padding = (s - 1) / 2;
+  float value;
+  image integ = make_integral_image(im);
+  image S = make_image(im.w, im.h, im.c);
+
+  for (channel = 0; channel < im.c; channel++) {
+    for (y = 0; y < im.h; y++) {
+      for (x = 0; x < im.w; x++) {
+        value = box_filter_pixel(integ, x, y, channel, padding);
+        int w = fmin(im.w, x + padding) - fmax(0, x - padding) + 1;
+        int h = fmin(im.h, y + padding) - fmax(0, y - padding) + 1;
+        set_pixel(S, x, y, channel, value / (w * h));
+      }
     }
-    return S;
+  }
+  free_image(integ);
+  return S;
 }
 
 // Calculate the time-structure matrix of an image pair.
