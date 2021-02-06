@@ -81,7 +81,6 @@ image box_filter_image(image im, int s)
                 if (topleft.x != -1 && topleft.y != -1) value += get_pixel(integ, topleft.x, topleft.y, k);
                 value /= (topleft.x - botright.x) * (topleft.y - botright.y); 
                 set_pixel(S, i, j, k, value);
-                if (i == 15 && j == 15) printf("\n\n%f, %f, %f, %f\n\n", topleft.x, topleft.y, botright.x, botright.y);
             }
         }
     }
