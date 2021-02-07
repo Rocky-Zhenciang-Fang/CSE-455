@@ -102,7 +102,6 @@ image time_structure_matrix(image im, image prev, int s)
         im = rgb_to_grayscale(im);
         prev = rgb_to_grayscale(prev);
     }
-    printf("%d, %d, %d", im.w, im.h, im.c);
     image S = make_image(im.w, im.h, 5);
     image gx_filter = make_gx_filter();
     image gy_filter = make_gy_filter();
@@ -135,18 +134,41 @@ image velocity_image(image S, int stride)
 {
     image v = make_image(S.w/stride, S.h/stride, 3);
     int i, j;
-    matrix M = make_matrix(2,2);
+    matrix M = make_matrix(2, 2);
+    matrix b = make_matrix(2, 1); 
+    matrix V = make_matrix(2, 1); 
     for(j = (stride-1)/2; j < S.h; j += stride){
         for(i = (stride-1)/2; i < S.w; i += stride){
-            float Ixx = S.data[i + S.w*j + 0*S.w*S.h];
-            float Iyy = S.data[i + S.w*j + 1*S.w*S.h];
-            float Ixy = S.data[i + S.w*j + 2*S.w*S.h];
-            float Ixt = S.data[i + S.w*j + 3*S.w*S.h];
-            float Iyt = S.data[i + S.w*j + 4*S.w*S.h];
+            for (int m = 0; m <= 3; m++) M.data[m % 2][m / 2] = 0;
+            for (int m = 0; m <= 1; m++) b.data[m][0] = 0;
+            for (int y = j - stride / 2; y < j + stride / 2; y += 1) {
+                for (int x = i - stride / 2; x < i + stride / 2; x += 1) {
+                    float Ixx = S.data[i + S.w*j + 0*S.w*S.h];
+                    float Iyy = S.data[i + S.w*j + 1*S.w*S.h];
+                    float Ixy = S.data[i + S.w*j + 2*S.w*S.h];
+                    float Ixt = S.data[i + S.w*j + 3*S.w*S.h];
+                    float Iyt = S.data[i + S.w*j + 4*S.w*S.h];
+                    M.data[0][0] += Ixx; 
+                    M.data[0][1] += Ixy;
+                    M.data[1][0] += Ixy; 
+                    M.data[1][1] += Iyy; 
+                    b.data[0][0] -= Ixt;
+                    b.data[1][0] -= Iyt;
+                }
+            }
 
-            // TODO: calculate vx and vy using the flow equation
-            float vx = 0;
-            float vy = 0;
+            // Calculate vx and vy using the flow equation
+            matrix M_inv = matrix_invert(M); 
+            if (M_inv.data) {
+                V = matrix_mult_matrix(M_inv, b); 
+                free_matrix(M_inv); 
+            }
+            else {
+                V.data[0][0] = 0; 
+                V.data[1][0] = 0; 
+            }
+            float vx = V.data[0][0];
+            float vy = V.data[1][0];
 
             set_pixel(v, i/stride, j/stride, 0, vx);
             set_pixel(v, i/stride, j/stride, 1, vy);
