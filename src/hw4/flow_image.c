@@ -96,22 +96,36 @@ image box_filter_image(image im, int s)
 //          3rd channel is IxIy, 4th channel is IxIt, 5th channel is IyIt.
 image time_structure_matrix(image im, image prev, int s)
 {
-    int i;
     int converted = 0;
     if(im.c == 3){
         converted = 1;
         im = rgb_to_grayscale(im);
         prev = rgb_to_grayscale(prev);
     }
-
-    // TODO: calculate gradients, structure components, and smooth them
-
-    image S;
-
+    printf("%d, %d, %d", im.w, im.h, im.c);
+    image S = make_image(im.w, im.h, 5);
+    image gx_filter = make_gx_filter();
+    image gy_filter = make_gy_filter();
+    image gx = convolve_image(im, gx_filter, 0); 
+    image gy = convolve_image(im, gy_filter, 0);
+    for (int x = 0; x < im.w; x++) {
+        for (int y = 0; y < im.h; y++) {
+            float dx = get_pixel(gx, x, y, 0); 
+            float dy = get_pixel(gy, x, y, 0); 
+            float dt = get_pixel(im, x, y, 0) - get_pixel(prev, x, y, 0); 
+            set_pixel(S, x, y, 0, powf(dx, 2)); 
+            set_pixel(S, x, y, 1, powf(dy, 2));
+            set_pixel(S, x, y, 2, dx * dy);
+            set_pixel(S, x, y, 3, dx * dt); 
+            set_pixel(S, x, y, 4, dy * dt);
+        }
+    }
+    image result = box_filter_image(S, s); 
+    free_image(gx_filter); free_image(gy_filter); free_image(gx); free_image(gy); free_image(S);
     if(converted){
         free_image(im); free_image(prev);
     }
-    return S;
+    return result;
 }
 
 // Calculate the velocity given a structure image
