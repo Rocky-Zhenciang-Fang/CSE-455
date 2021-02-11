@@ -139,23 +139,17 @@ image velocity_image(image S, int stride)
     matrix V = make_matrix(2, 1); 
     for(j = (stride-1)/2; j < S.h; j += stride){
         for(i = (stride-1)/2; i < S.w; i += stride){
-            for (int m = 0; m <= 3; m++) M.data[m % 2][m / 2] = 0;
-            for (int m = 0; m <= 1; m++) b.data[m][0] = 0;
-            for (int y = j - stride / 2; y < j + stride / 2; y += 1) {
-                for (int x = i - stride / 2; x < i + stride / 2; x += 1) {
-                    float Ixx = S.data[i + S.w*j + 0*S.w*S.h];
-                    float Iyy = S.data[i + S.w*j + 1*S.w*S.h];
-                    float Ixy = S.data[i + S.w*j + 2*S.w*S.h];
-                    float Ixt = S.data[i + S.w*j + 3*S.w*S.h];
-                    float Iyt = S.data[i + S.w*j + 4*S.w*S.h];
-                    M.data[0][0] += Ixx; 
-                    M.data[0][1] += Ixy;
-                    M.data[1][0] += Ixy; 
-                    M.data[1][1] += Iyy; 
-                    b.data[0][0] -= Ixt;
-                    b.data[1][0] -= Iyt;
-                }
-            }
+            float Ixx = S.data[i + S.w*j + 0*S.w*S.h];
+            float Iyy = S.data[i + S.w*j + 1*S.w*S.h];
+            float Ixy = S.data[i + S.w*j + 2*S.w*S.h];
+            float Ixt = S.data[i + S.w*j + 3*S.w*S.h];
+            float Iyt = S.data[i + S.w*j + 4*S.w*S.h];
+            M.data[0][0] = Ixx; 
+            M.data[0][1] = Ixy;
+            M.data[1][0] = Ixy; 
+            M.data[1][1] = Iyy; 
+            b.data[0][0] = -Ixt;
+            b.data[1][0] = -Iyt;
 
             // Calculate vx and vy using the flow equation
             matrix M_inv = matrix_invert(M); 

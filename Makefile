@@ -1,4 +1,4 @@
-OPENCV=0
+OPENCV=1
 OPENMP=0
 DEBUG=0
 VERBOSE=0
@@ -37,8 +37,8 @@ CFLAGS+=$(OPTS)
 ifeq ($(OPENCV), 1) 
 COMMON+= -DOPENCV
 CFLAGS+= -DOPENCV
-LDFLAGS+= `pkg-config --libs opencv` -lstdc++  # This may need to be opencv4 or a specific path
-COMMON+= `pkg-config --cflags opencv`
+LDFLAGS+= `pkg-config --libs opencv4` -lstdc++  # This may need to be opencv4 or a specific path
+COMMON+= `pkg-config --cflags opencv4`
 endif
 
 EXOBJS = $(addprefix $(OBJDIR), $(EXOBJ))
