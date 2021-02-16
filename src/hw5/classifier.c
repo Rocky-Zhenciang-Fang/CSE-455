@@ -114,13 +114,19 @@ matrix backward_layer(layer *l, matrix delta)
 // double decay: value for weight decay
 void update_layer(layer *l, double rate, double momentum, double decay)
 {
-    // TODO:
     // Calculate Δw_t = dL/dw_t - λw_t + mΔw_{t-1}
-    // save it to l->v
+    matrix temp = axpy_matrix(-decay, l->w, l->dw); 
+    matrix del_w = axpy_matrix(momentum, l->v, temp); 
+    free_matrix(temp); 
 
+    // save it to l->v
+    free_matrix(l->v); 
+    l->v = del_w; 
 
     // Update l->w
-
+    matrix new_w = axpy_matrix(rate, del_w, l->w); 
+    free_matrix(l->w);
+    l->w = new_w;
 
     // Remember to free any intermediate results to avoid memory leaks
 
