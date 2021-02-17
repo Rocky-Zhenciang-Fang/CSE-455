@@ -267,19 +267,25 @@ void train_model(model m, data d, int batch, int iters, double rate, double mome
 // Questions 
 //
 // 5.2.2.1 Why might we be interested in both training accuracy and testing accuracy? What do these two numbers tell us about our current model?
-// TODO
+// For a model, the bigger the training accuracy is, the more the model fit to the input data. 
+// However, as the training accuracy grows, it migh be overfitting the traning data. 
+// Thus, we will use some of the data to test the model if it only fits in some certin input. 
+// Ideally, the training accruacy and the test accuracy should be similar.
 //
 // 5.2.2.2 Try varying the model parameter for learning rate to different powers of 10 (i.e. 10^1, 10^0, 10^-1, 10^-2, 10^-3) and training the model. What patterns do you see and how does the choice of learning rate affect both the loss during training and the final model accuracy?
-// TODO
+// Expect for rate = 10 (which has both accuracy < 10%), all other rates are pretty accruacy (>85%). Thus all disscussion will be based on the later 4 results.
+// The peak of both accuracy occur at rate = 0.1. Also, although the difference between training and testing accuracy is small, as the rate decreases, the difference between training and testing accuracy increases. 
 //
 // 5.2.2.3 Try varying the parameter for weight decay to different powers of 10: (10^0, 10^-1, 10^-2, 10^-3, 10^-4, 10^-5). How does weight decay affect the final model training and test accuracy?
-// TODO
+// Before decay = 0.01, both of the accruacy increases when decay decreases. After 0.01, both accuracy remains stable. At this findal flat region, both accuracy remains similar to decay = 0.
+// Different from decay = 0, where sometimes testing accuracy is bigger then training accuracy, when decay > 0, the testing accuracy is always smaller then the training accuracy.
 //
 // 5.2.3.1 Currently the model uses a logistic activation for the first layer. Try using a the different activation functions we programmed. How well do they perform? What's best?
-// TODO
+// Besides softmax (which has both accuracy < 10%), all other logistic activation has a accruate result (> 90%).
+// Accruacy order: RELU > LRELU > LOGISTIC > LINEAR >>>>>> SOFTMAX
 //
 // 5.2.3.2 Using the same activation, find the best (power of 10) learning rate for your model. What is the training accuracy and testing accuracy?
-// TODO
+// The best rate = 0.1, leading to  training accuracy = 0.96115, ,testing accuracy = 0.9564
 //
 // 5.2.3.3 Right now the regularization parameter `decay` is set to 0. Try adding some decay to your model. What happens, does it help? Why or why not may this be?
 // TODO
