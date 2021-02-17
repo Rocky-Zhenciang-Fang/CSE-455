@@ -285,16 +285,21 @@ void train_model(model m, data d, int batch, int iters, double rate, double mome
 // Accruacy order: RELU > LRELU > LOGISTIC > LINEAR >>>>>> SOFTMAX
 //
 // 5.2.3.2 Using the same activation, find the best (power of 10) learning rate for your model. What is the training accuracy and testing accuracy?
-// The best rate = 0.1, leading to  training accuracy = 0.96115, ,testing accuracy = 0.9564
+// The best rate = 0.1, leading to training accuracy = 0.96115, testing accuracy = 0.9564.
 //
 // 5.2.3.3 Right now the regularization parameter `decay` is set to 0. Try adding some decay to your model. What happens, does it help? Why or why not may this be?
-// TODO
+// By setting the decay to 0.0001, the training accuracy = 0.96245 and the testing accuracy = 0.9586, which is better then setting decay = 0
+// We know that neural networks are powerful models, which migh lead to overfitting. So by introducing a weight decay, we can smoothen the extreme weight comming from noise and prevent overfitting.
 //
 // 5.2.3.4 Modify your model so it has 3 layers instead of two. The layers should be `inputs -> 64`, `64 -> 32`, and `32 -> outputs`. Also modify your model to train for 3000 iterations instead of 1000. Look at the training and testing error for different values of decay (powers of 10, 10^-4 -> 10^0). Which is best? Why?
-// TODO
+// By setting rate = 0.1 and decay = 0.0001 the model will be the best, with training accuracy = 0.987 and testing accuracy = 0.9751. 
+// From the prevous problem, we know that adding decay can help us prevent overfitting. However, if the decay is too big, the model might be too weak. 
+// By testing decay = 1, 0.1, 0.01, 0.001, 0.0001, it is seen that the smaller the decay is, the more accurate the model is. 
+// This shown that the big decays will weaken the model too much, so among those five decays, we will want to use 0.0001.
 //
 // 5.3.2.1 How well does your network perform on the CIFAR dataset?
-// TODO
+// I set the layer and the number of iterations as same as 5.2.3.4 and test all combination of decay = [0, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1] and rate = [10, 1, 0.1, 0.01, 0.001, 0.0001]. 
+// The most accuracy model uses decay = 0.0001 and rate = 0.01. The model gives us training accuracy = 0.48196, tesring accuracy = 0.4664
 //
 
 
